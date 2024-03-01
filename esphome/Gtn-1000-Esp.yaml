@@ -1,0 +1,152 @@
+##########################################################################
+######              lecture des valeurs du GTN-100024v via esphome 
+#################################################################################
+
+substitutions:
+  #############################
+  # comomon substitution #####
+  ############################  
+  
+  name: Gtn-1000-24v-Esp 
+  esphome_name: "gtn-1000-24v-esp"
+  friendly_name: "Gtn-1000-24v-Esp"
+  sensor_prefix: "gtn1000esp"
+  device_description: "Control the power output of a Soyosource GTN on demand via RS485"
+  external_components_source: github://syssi/esphome-soyosource-gtn-virtual-meter@main
+  time_timezone: "Europe/Paris"
+  projectname: "Pat.GTN100024V Virtual Meter"
+  appversion: 2.0.0
+  log_level: "INFO"
+  baud_rate: "0"
+  api_encryption_key: !secret gtn100024vkey
+  ota_pswd: !secret gtn100024vota
+  ap_pwd: !secret gtn100024vap
+  adress_ip: !secret ip_gtn100024v
+  gateway_ip: !secret ip_gateway
+  dns_ip: !secret ip_dns
+  
+  ###########################
+  ## LOCAL substitution #####
+  ###########################
+  tx_pin: GPIO1
+  rx_pin: GPIO3 
+  
+###############################
+### definition de la carte ESP
+###############################
+esp8266:
+board: d1_mini
+  
+###################################
+### inclusion de la partie commune 
+###################################
+
+<<: !include .common.yaml
+
+##########################
+##  composants externes ##
+##########################
+
+external_components:
+  - source: ${external_components_source}
+    refresh: 0s
+    
+##################################################################
+######################  programme principal ######################  
+##################################################################
+
+#########
+# UART ##
+#########
+uart:
+  - id: uart_0
+    baud_rate: 4800
+    tx_pin: ${tx_pin}
+    rx_pin: ${rx_pin}
+
+soyosource_modbus:
+  - id: modbus0
+    uart_id: uart_0
+    # flow_control_pin: GPIO12
+
+    # Optional settings
+    #
+    # The name is used as prefix for some log messages and should
+    # help to distinguish between different instances/devices
+    name: ${sensor_prefix}
+
+soyosource_virtual_meter:
+  - id: virtualmeter0
+    soyosource_modbus_id: modbus0
+
+    # The state of this sensor (instantaneous power in watt) is used as source
+    power_id: powermeter0
+
+    # Optional settings
+    power_sensor_inactivity_timeout: 20s
+    power_demand_calculation: NEGATIVE_MEASUREMENTS_REQUIRED
+    min_power_demand: 0
+    max_power_demand: 900
+    zero_output_on_min_power_demand: true
+    # Split/distribute the power demand if you have multiple inverters attached to the same RS485 bus
+    power_demand_divider: 1
+    # A positive buffer value (10) tries to avoid exporting power to the grid (demand - 10 watts)
+    # A negative buffer value (-10) exports power to the grid (demand + 10 watts)
+    buffer: -26
+
+    # The update interval is important and defaults to 3 seconds. If the demand is sent too frequently
+    # or rarely the interverter stops. TODO: Identify and validate the lower and upper update limit
+    update_interval: 3s
+
+number:
+  - platform: soyosource_virtual_meter
+    soyosource_virtual_meter_id: virtualmeter0
+    buffer:
+      name: "${sensor_prefix} buffer"
+      initial_value: -25
+      restore_value: true
+    manual_power_demand:
+      name: "${sensor_prefix} manual power demand"
+      max_value: 600
+    max_power_demand:
+      name: "${sensor_prefix} max power demand"
+      initial_value: 290
+      max_value: 600
+      restore_value: true
+    power_demand_divider:
+      name: "${sensor_prefix} power demand divider"
+      initial_value: 1
+      restore_value: true
+
+sensor:
+  - platform: soyosource_virtual_meter
+    soyosource_virtual_meter_id: virtualmeter0
+    power_demand:
+      name: "${sensor_prefix} power demand"
+
+
+   # import smartmeter reading from homeassistant
+   # requires the "api" component see above
+  - platform: homeassistant
+    id: powermeter0
+    name: "${sensor_prefix} smartmeter instantaneous power"
+    entity_id: sensor.cptlinky_power
+    filters:
+      - throttle_average: 10s
+
+switch:
+  - platform: soyosource_virtual_meter
+    soyosource_virtual_meter_id: virtualmeter0
+    manual_mode:
+      name: "${sensor_prefix} manual mode"
+      restore_mode: RESTORE_DEFAULT_ON
+    emergency_power_off:
+      name: "${sensor_prefix} emergency power off"
+      restore_mode: RESTORE_DEFAULT_OFF
+
+text_sensor:
+  - platform: soyosource_virtual_meter
+    soyosource_virtual_meter_id: virtualmeter0
+    operation_mode:
+      name: "${sensor_prefix} limiter operation mode"
+    
