@@ -1,15 +1,19 @@
 ##########################################################################
 ######              lecture des valeurs du GTN-100024v via esphome 
 #################################################################################
-
+#changelog:
+#
+# V2.0 cleaning + common file
+# V1.0
+#
 substitutions:
   #############################
   # comomon substitution #####
   ############################  
   
-  name: Gtn-1000-24v-Esp 
+  name: gtn-1000-24v-test 
   esphome_name: "gtn-1000-24v-esp"
-  friendly_name: "Gtn-1000-24v-Esp"
+  friendly_name: "Gtn-1000-24v-test"
   sensor_prefix: "gtn1000esp"
   device_description: "Control the power output of a Soyosource GTN on demand via RS485"
   external_components_source: github://syssi/esphome-soyosource-gtn-virtual-meter@main
@@ -17,13 +21,15 @@ substitutions:
   projectname: "Pat.GTN100024V Virtual Meter"
   appversion: 2.0.0
   log_level: "INFO"
-  baud_rate: "0"
-  api_encryption_key: !secret gtn100024vkey
+  baud_ratelog: "0"
+  api_encryption_key: !secret testyamlkey
   ota_pswd: !secret gtn100024vota
   ap_pwd: !secret gtn100024vap
   adress_ip: !secret ip_gtn100024v
   gateway_ip: !secret ip_gateway
   dns_ip: !secret ip_dns
+  time_platform: homeassistant
+  time_id: ha_time
   
   ###########################
   ## LOCAL substitution #####
@@ -35,7 +41,7 @@ substitutions:
 ### definition de la carte ESP
 ###############################
 esp8266:
-board: d1_mini
+  board: d1_mini
   
 ###################################
 ### inclusion de la partie commune 
