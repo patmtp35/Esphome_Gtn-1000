@@ -19,7 +19,7 @@ substitutions:
   external_components_source: github://syssi/esphome-soyosource-gtn-virtual-meter@main
   time_timezone: "Europe/Paris"
   projectname: "Pat.GTN100024V Virtual Meter"
-  appversion: 2.0.0
+  appversion: 2.2.0
   log_level: "INFO"
   baud_ratelog: "0"
   api_encryption_key: !secret testyamlkey
